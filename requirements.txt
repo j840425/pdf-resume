@@ -1,0 +1,25 @@
+# Web Framework
+streamlit>=1.31.0
+
+# Google Cloud & Vertex AI
+google-cloud-aiplatform>=1.42.0
+google-cloud-storage>=2.14.0
+
+# PDF Processing
+PyPDF2>=3.0.1
+pdfplumber>=0.10.3
+
+# Numerical Computing
+numpy>=1.24.0
+
+# Environment & Config
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Async Processing (optional for production)
+redis>=5.0.1
+
+# Utilities
+tqdm>=4.66.1
+tenacity>=8.2.3
