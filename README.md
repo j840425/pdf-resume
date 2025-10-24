@@ -24,34 +24,35 @@ Sistema de Retrieval-Augmented Generation (RAG) que permite cargar documentos PD
 │              Capa de Presentación                   │
 │                   (Streamlit)                       │
 └─────────────────────────────────────────────────────┘
-                       ↓
+
 ┌─────────────────────────────────────────────────────┐
 │              Capa de Procesamiento                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
-│  │ PDF Processor│  │   Structure  │  │ Embeddings│ │
-│  │              │→ │   Detector   │→ │  Manager  │ │
-│  └──────────────┘  └──────────────┘  └───────────┘ │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
-│  │   Summary    │  │  QA Engine   │  │  Chunking │ │
-│  │  Generator   │  │              │  │  Utils    │ │
-│  └──────────────┘  └──────────────┘  └───────────┘ │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐  │
+│  │ PDF Processor│  │   Structure  │  │ Embeddings│  │
+│  │              │→ │   Detector   │→ │  Manager  │  │
+│  └──────────────┘  └──────────────┘  └───────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐  │
+│  │   Summary    │  │  QA Engine   │  │  Chunking │  │
+│  │  Generator   │  │              │  │  Utils    │  │
+│  └──────────────┘  └──────────────┘  └───────────┘  │
 └─────────────────────────────────────────────────────┘
-                       ↓
+
 ┌─────────────────────────────────────────────────────┐
 │              Capa de Servicios                      │
-│  ┌──────────────┐  ┌──────────────┐                │
-│  │   Vertex AI  │  │   Storage    │                │
-│  │   Service    │  │   Service    │                │
-│  └──────────────┘  └──────────────┘                │
+│  ┌──────────────┐  ┌──────────────┐                 │
+│  │   Vertex AI  │  │   Storage    │                 │
+│  │   Service    │  │   Service    │                 │
+│  └──────────────┘  └──────────────┘                 │
 └─────────────────────────────────────────────────────┘
-                       ↓
+
 ┌─────────────────────────────────────────────────────┐
 │              Capa de Datos                          │
-│  ┌──────────────┐  ┌──────────────┐                │
-│  │ Local/GCS    │  │  Vertex AI   │                │
-│  │  Storage     │  │  Embeddings  │                │
-│  └──────────────┘  └──────────────┘                │
+│  ┌──────────────┐  ┌──────────────┐                 │
+│  │ Local/GCS    │  │  Vertex AI   │                 │
+│  │  Storage     │  │  Embeddings  │                 │
+│  └──────────────┘  └──────────────┘                 │
 └─────────────────────────────────────────────────────┘
+
 ```
 
 ### Stack Tecnológico
@@ -108,7 +109,7 @@ pry_pdf_resume/
 
 ### Requisitos Previos
 
-- Python 3.11+
+- Python 3.12
 - Cuenta de Google Cloud Platform con billing habilitado
 - Proyecto GCP con las siguientes APIs habilitadas:
   - Vertex AI API
@@ -246,199 +247,7 @@ Después del procesamiento, podrás ver:
    - Generará una respuesta contextual
    - Proporcionará referencias a secciones específicas
 
-## Deployment en Google Cloud
 
-### Preparación
-
-#### 1. Crear bucket de Cloud Storage
-
-```bash
-gsutil mb gs://TU_PROJECT_ID-pdfs
-gsutil mb gs://TU_PROJECT_ID-outputs
-```
-
-#### 2. Configurar variables de entorno para producción
-
-Editar `.env.production`:
-
-```env
-ENVIRONMENT=production
-GCP_PROJECT_ID=tu-proyecto-gcp
-GCP_LOCATION=us-central1
-VERTEX_AI_MODEL=gemini-2.5-pro
-EMBEDDING_MODEL=text-embedding-004
-STORAGE_TYPE=cloud
-GCS_BUCKET_NAME=tu-proyecto-gcp-pdfs
-GCS_OUTPUT_BUCKET=tu-proyecto-gcp-outputs
-```
-
-### Deploy con Cloud Build
-
-```bash
-gcloud builds submit --config deploy/cloudbuild.yaml
-```
-
-### Deploy Manual con Docker y Cloud Run
-
-#### 1. Build de la imagen
-
-```bash
-# Autenticar con Container Registry
-gcloud auth configure-docker
-
-# Build de la imagen
-docker build -t gcr.io/TU_PROJECT_ID/pdf-rag-system:latest .
-
-# Push de la imagen
-docker push gcr.io/TU_PROJECT_ID/pdf-rag-system:latest
-```
-
-#### 2. Deploy en Cloud Run
-
-```bash
-gcloud run deploy pdf-rag-system \
-  --image gcr.io/TU_PROJECT_ID/pdf-rag-system:latest \
-  --platform managed \
-  --region us-central1 \
-  --memory 4Gi \
-  --cpu 2 \
-  --timeout 3600 \
-  --max-instances 10 \
-  --set-env-vars ENVIRONMENT=production \
-  --set-env-vars GCP_PROJECT_ID=TU_PROJECT_ID \
-  --set-env-vars GCP_LOCATION=us-central1 \
-  --set-env-vars VERTEX_AI_MODEL=gemini-2.5-pro \
-  --set-env-vars EMBEDDING_MODEL=text-embedding-004 \
-  --set-env-vars STORAGE_TYPE=cloud \
-  --set-env-vars GCS_BUCKET_NAME=TU_PROJECT_ID-pdfs \
-  --set-env-vars GCS_OUTPUT_BUCKET=TU_PROJECT_ID-outputs \
-  --allow-unauthenticated
-```
-
-## Configuración Avanzada
-
-### Ajuste de Parámetros de Chunking
-
-Editar en `config.py` o variables de entorno:
-
-```python
-CHUNK_SIZE=1000          # Tamaño de cada chunk en caracteres
-CHUNK_OVERLAP=200        # Superposición entre chunks
-```
-
-Recomendaciones:
-- PDFs técnicos: `CHUNK_SIZE=1500`, `CHUNK_OVERLAP=300`
-- PDFs narrativos: `CHUNK_SIZE=800`, `CHUNK_OVERLAP=150`
-
-### Límites y Concurrencia
-
-```python
-MAX_PDF_PAGES=2000              # Máximo de páginas por PDF
-MAX_CONCURRENT_REQUESTS=5        # Requests concurrentes a Vertex AI
-```
-
-### Niveles de Detalle de Resúmenes
-
-Personalizar los prompts en `core/summary_generator.py`:
-
-- **Ejecutivo**: Enfocado en insights clave y conclusiones
-- **Normal**: Balance entre detalle y accesibilidad
-- **Detallado**: Exhaustivo con datos técnicos y ejemplos
-
-## Troubleshooting
-
-### Error: "Cannot authenticate with GCP"
-
-```bash
-gcloud auth application-default login
-gcloud config set project TU_PROJECT_ID
-```
-
-### Error: "Vertex AI API not enabled"
-
-```bash
-gcloud services enable aiplatform.googleapis.com
-```
-
-### Error: "Cloud Storage API not enabled"
-
-```bash
-gcloud services enable storage.googleapis.com
-```
-
-### PDF no procesa correctamente
-
-**Síntomas**: El PDF no se procesa o genera errores
-
-**Soluciones**:
-1. Verificar que el PDF no esté protegido con contraseña
-2. Asegurar que el PDF tenga texto extraíble (no escaneado como imagen)
-3. Revisar logs en modo debug:
-   ```bash
-   streamlit run app.py --logger.level=debug
-   ```
-
-### La detección de estructura falla
-
-**Síntomas**: No se detecta la tabla de contenidos o las secciones
-
-**Soluciones**:
-1. El PDF debe tener una tabla de contenidos clara
-2. Verificar que los títulos de capítulos sigan un patrón consistente
-3. Si no hay TOC, el sistema usará análisis heurístico (menos preciso)
-
-### Errores de cuota de Vertex AI
-
-**Síntomas**: "Quota exceeded" o "Rate limit"
-
-**Soluciones**:
-1. Reducir `MAX_CONCURRENT_REQUESTS` en config
-2. Solicitar aumento de cuota en GCP Console
-3. Implementar retry logic con backoff exponencial
-
-## Desarrollo
-
-### Estructura de Logs
-
-Todos los módulos usan logging de Python:
-
-```python
-import logging
-logger = logging.getLogger(__name__)
-
-logger.info("Mensaje informativo")
-logger.warning("Mensaje de advertencia")
-logger.error("Mensaje de error", exc_info=True)
-```
-
-### Ejecutar en modo debug
-
-```bash
-streamlit run app.py --logger.level=debug
-```
-
-### Testing
-
-```bash
-# Ejecutar todos los tests
-pytest tests/
-
-# Ejecutar con coverage
-pytest --cov=. tests/
-```
-
-### Formateo de código
-
-```bash
-# Formatear con black
-black .
-
-# Verificar estilo con flake8
-flake8 .
-
-# Type checking con mypy
-mypy .
-```
 ## Licencia
 
 Este proyecto está bajo licencia MIT. Ver archivo `LICENSE` para más detalles.
